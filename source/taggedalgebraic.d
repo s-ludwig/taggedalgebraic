@@ -171,12 +171,12 @@ struct TaggedAlgebraic(U) if (is(U == union) || is(U == struct))
 bool hasType(T, U)(in ref TaggedAlgebraic!U ta)
 {
 	switch (ta.typeID) {
-		default: return false;
 		foreach (i, FT; ta.FieldTypes)
 			static if (is(FT == T)) {
 				case __traits(getMember, ta.Type, ta.fieldNames[i]):
 					return true;
 			}
+		default: return false;
 	}
 	assert(false); // never reached
 }
