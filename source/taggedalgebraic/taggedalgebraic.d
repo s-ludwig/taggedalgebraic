@@ -134,6 +134,9 @@ struct TaggedAlgebraic(U) if (is(U == union) || is(U == struct) || is(U == enum)
 	auto ref opIndexAssign(this TA, ARGS...)(auto ref ARGS args) if (hasOp!(TA, OpKind.indexAssign, null, ARGS)) { return implementOp!(OpKind.indexAssign, null)(this, args); }
 	/// Enables call syntax operations on the stored value.
 	auto ref opCall(this TA, ARGS...)(auto ref ARGS args) if (hasOp!(TA, OpKind.call, null, ARGS)) { return implementOp!(OpKind.call, null)(this, args); }
+
+	/// Enables `foreach` iteration over container types.
+	mixin(generateOpApplyOverloads!U);
 }
 
 ///
@@ -241,6 +244,23 @@ struct TaggedAlgebraic(U) if (is(U == union) || is(U == struct) || is(U == enum)
 
 	ta = S(8);
 	assert(ta.test() == 4);
+}
+
+/// Iteration over container types works as well.
+unittest {
+	static struct S {
+		int[] array;
+		int[string] dict;
+	}
+	alias TA = TaggedAlgebraic!S;
+
+	auto ta = TA([3, 4, 5]);
+	foreach (size_t i, v; ta) assert(v - i == 3);
+	foreach (v; ta) assert(v >= 3 && v <= 5);
+
+	ta = TA(["a": 1, "b": 2, "c": 3]);
+	foreach (string key, v; ta) assert(key == "a" || key == "b" || key == "c");
+	foreach (v; ta) assert(v >= 1 && v <= 3);
 }
 
 unittest { // std.conv integration
@@ -1146,6 +1166,32 @@ private string generateConstructors(U)()
 		}.format(tname);
 
 	return ret;
+}
+
+private string generateOpApplyOverloads(U)()
+{
+	string ret;
+	foreach (T; OpApplyTypes!U)
+		ret ~= mixin OpApply!(U, T.expand);
+	return ret;
+}
+
+private mixin template OpApply(U, T...)
+{
+	int opApply(scope int delegate(T) del)
+	{
+		switch (m_kind) {
+			default: assert(false, "Only the following kinds can be iterated: "~fieldNames.join(", "));
+			foreach (i, tname; fieldNames) {
+				alias T = typeof(__traits(getMember, U, tname));
+				case __traits(getMember, Kind, tname):
+					foreach (T t; trustedGet!tname)
+						if (auto ret = del(t))
+							return ret;
+					return 0;
+			}
+		}
+	}
 }
 
 private template UniqueTypeFields(U) {
