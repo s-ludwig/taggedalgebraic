@@ -3,3 +3,11 @@ description `A "tagged union" implementation with transparent operator forwardin
 authors "Sönke Ludwig"
 copyright "Copyright © 2015, Sönke Ludiwg"
 license "BSL-1.0"
+
+configuration "default" {
+
+}
+
+configuration "unittest" {
+    versions "Test_taggedalgebraic"
+}

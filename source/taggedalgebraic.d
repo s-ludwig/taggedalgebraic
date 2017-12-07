@@ -1,6 +1,6 @@
 /**
  * Algebraic data type implementation based on a tagged union.
- * 
+ *
  * Copyright: Copyright 2015-2016, Sönke Ludwig.
  * License:   $(WEB www.boost.org/LICENSE_1_0.txt, Boost License 1.0).
  * Authors:   Sönke Ludwig
@@ -232,7 +232,7 @@ unittest
 	Tagged taggedAny = taggedInt;
 	taggedAny = taggedString;
 	taggedAny = taggedFoo;
-	
+
 	// Check type: Tagged.Kind is an enum
 	assert(taggedInt.kind == Tagged.Kind.i);
 	assert(taggedString.kind == Tagged.Kind.str);
@@ -370,7 +370,7 @@ unittest {
 	static union U {
 		S s;
 	}
-	
+
 	auto u = TaggedAlgebraic!U(S.init);
 	const uc = u;
 	immutable ui = cast(immutable)u;
@@ -427,7 +427,7 @@ unittest {
 	static assert( is(typeof(ta.testI())));
 }
 
-version (unittest) {
+version (unittest) version (Test_taggedalgebraic) {
 	// test recursive definition using a wrapper dummy struct
 	// (needed to avoid "no size yet for forward reference" errors)
 	template ID(What) { alias ID = What; }
