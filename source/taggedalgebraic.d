@@ -208,7 +208,7 @@ struct TaggedAlgebraic(U) if (is(U == union) || is(U == struct))
 	/// Enables the use of binary operators with the stored value.
 	auto opBinary(string op, T, this TA)(auto ref T other) if (hasOp!(TA, OpKind.binary, op, T)) { return implementOp!(OpKind.binary, op)(this, other); }
 	/// Enables the use of binary operators with the stored value.
-	auto opBinaryRight(string op, T, this TA)(auto ref T other) if (hasOp!(TA, OpKind.binaryRight, op, T)) { return implementOp!(OpKind.binaryRight, op)(this, other); }
+	auto opBinaryRight(string op, T, this TA)(auto ref T other) if (hasOp!(TA, OpKind.binaryRight, op, T) && !hasOp!(TA, OpKind.binary, op, T)) { return implementOp!(OpKind.binaryRight, op)(this, other); }
 	/// Enables operator assignments on the stored value.
 	auto opOpAssign(string op, T, this TA)(auto ref T other) if (hasOp!(TA, OpKind.binary, op~"=", T)) { return implementOp!(OpKind.binary, op~"=")(this, other); }
 	/// Enables indexing operations on the stored value.
