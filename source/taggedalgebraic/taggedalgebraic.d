@@ -116,8 +116,23 @@ struct TaggedAlgebraic(U) if (is(U == union) || is(U == struct) || is(U == enum)
 	}
 
 	/// Enables equality comparison with the stored value.
-	auto ref opEquals(T, this TA)(auto ref T other)
-		if (is(Unqual!T == TaggedAlgebraic) || hasOp!(TA, OpKind.binary, "==", T))
+	// no "this TA" due to https://issues.dlang.org/show_bug.cgi?id=21235
+	auto ref opEquals(T)(auto ref T other)
+		if (is(Unqual!T == TaggedAlgebraic) || hasOp!(typeof(this), OpKind.binary, "==", T))
+	{
+		static if (is(Unqual!T == TaggedAlgebraic)) {
+			return m_union == other.m_union;
+		} else return implementOp!(OpKind.binary, "==")(this, other);
+	}
+	auto ref opEquals(T)(auto ref T other) const
+		if (is(Unqual!T == TaggedAlgebraic) || hasOp!(typeof(this), OpKind.binary, "==", T))
+	{
+		static if (is(Unqual!T == TaggedAlgebraic)) {
+			return m_union == other.m_union;
+		} else return implementOp!(OpKind.binary, "==")(this, other);
+	}
+	auto ref opEquals(T)(auto ref T other) immutable
+		if (is(Unqual!T == TaggedAlgebraic) || hasOp!(typeof(this), OpKind.binary, "==", T))
 	{
 		static if (is(Unqual!T == TaggedAlgebraic)) {
 			return m_union == other.m_union;
