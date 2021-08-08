@@ -50,8 +50,7 @@ install_headers(
 
 test_exe = executable(
 	'taggedalgebraic_test',
-	sources,
-	include_directories: include_directories,
+	dependencies: library_dep,
 	d_unittest: true,
 	link_args: '-main',
 )
