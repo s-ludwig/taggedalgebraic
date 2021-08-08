@@ -1,25 +1,59 @@
-project('taggedalgebraic', 'd',
-	meson_version: '>=0.54',
-	version: '0.11.20'
+project(
+    'taggedalgebraic',
+    ['d'],
+    license: 'BSL-1.0',
+    meson_version: '>=0.58.1',
+    version: '0.11.22',
 )
 
-project_soversion      = '0'
-project_version_suffix = ''
-project_version        = meson.project_version()
-project_version_full   = project_version + project_version_suffix
+include_directories = include_directories('source')
 
-source_root = meson.source_root()
-build_root = meson.build_root()
-subdir('source/taggedalgebraic')
-
-taggedalgebraic_dep = declare_dependency(
-	include_directories: include_directories('source'),
-	link_with: taggedalgebraic_lib
+sources = files(
+    'source/taggedalgebraic/package.d',
+    'source/taggedalgebraic/taggedalgebraic.d',
+    'source/taggedalgebraic/taggedunion.d',
+    'source/taggedalgebraic/visit.d',
 )
 
-taggedalgebraic_source_dep = declare_dependency(
-	version: project_version,
-	include_directories: '../'
+library_dep = declare_dependency(
+    sources: sources,
+    include_directories: include_directories,
 )
 
-meson.override_dependency('taggedalgebraic', taggedalgebraic_dep)
+library_lib = library(
+    'library',
+    dependencies: [
+        library_dep,
+    ],
+)
+
+# https://github.com/mesonbuild/meson/issues/6862
+if build_machine.system() == 'darwin'
+	library_lib = library(
+		'taggedalgebraic',
+        dependencies: library_dep,
+		install: true,
+	)
+else
+	library_lib = library(
+		'taggedalgebraic',
+        dependencies: library_dep,
+		install: true,
+		version: meson.project_version(),
+	)
+endif
+
+install_headers(
+	sources,
+	subdir: 'd/taggedalgebraic/taggedalgebraic',
+)
+
+test_exe = executable(
+	'taggedalgebraic_test',
+	sources,
+	include_directories: include_directories,
+	d_unittest: true,
+	link_args: '-main',
+)
+
+test('test_taggedalgebraic', test_exe)
