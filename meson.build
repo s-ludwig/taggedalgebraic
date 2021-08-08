@@ -20,13 +20,6 @@ library_dep = declare_dependency(
     include_directories: include_directories,
 )
 
-library_lib = library(
-    'library',
-    dependencies: [
-        library_dep,
-    ],
-)
-
 # https://github.com/mesonbuild/meson/issues/6862
 if build_machine.system() == 'darwin'
 	library_lib = library(
