@@ -69,11 +69,6 @@ align(commonAlignment!(UnionKindTypes!(UnionFieldEnum!U))) struct TaggedUnion
 		Kind m_kind;
 	}
 
-	this(TaggedUnion other)
-	{
-		rawSwap(this, other);
-	}
-
 	void opAssign(TaggedUnion other)
 	{
 		rawSwap(this, other);
@@ -104,26 +99,50 @@ align(commonAlignment!(UnionKindTypes!(UnionFieldEnum!U))) struct TaggedUnion
 		@disable this();
 	}
 
-	// postblit constructor
+	// postblit/copy constructor
 	static if (!allSatisfy!(templateOr!(isCopyable, isUnitType), FieldTypes)) {
 		@disable this(this);
 	} else static if (anySatisfy!(hasElaborateCopyConstructor, FieldTypes)) {
-		this(this)
-		{
-			switch (m_kind) {
-				default: break;
-				foreach (i, tname; fieldNames) {
-					alias T = FieldTypes[i];
-					static if (hasElaborateCopyConstructor!T)
-					{
+		static if (__VERSION__ >= 2095 && anySatisfy!(hasCopyConstructor, FieldTypes)) {
+			this(ref return scope inout TaggedUnion rhs) inout {
+				import core.lifetime : copyEmplace;
+
+				m_kind = rhs.m_kind;
+				final switch (m_kind) {
+					foreach (i, tname; fieldNames) {
+						alias T = FieldTypes[i];
 						case __traits(getMember, Kind, tname):
-							static if (hasUDA!(U, typeof(forceNothrowPostblit()))) {
-								try typeid(T).postblit(cast(void*)&trustedGet!T());
+							auto ptr = (() @trusted => cast(T*) m_data.ptr)();
+							static if (!hasElaborateCopyConstructor!T) {
+								*ptr = rhs.trustedGet!T();
+							} else static if (hasUDA!(U, typeof(forceNothrowPostblit()))) {
+								try copyEmplace(rhs.trustedGet!T(), *ptr);
 								catch (Exception e) assert(false, e.msg);
 							} else {
-								typeid(T).postblit(cast(void*)&trustedGet!T());
+								copyEmplace(rhs.trustedGet!T(), *ptr);
 							}
 							return;
+					}
+				}
+			}
+		} else {
+			this(this)
+			{
+				switch (m_kind) {
+					default: break;
+					foreach (i, tname; fieldNames) {
+						alias T = FieldTypes[i];
+						static if (hasElaborateCopyConstructor!T)
+						{
+							case __traits(getMember, Kind, tname):
+								static if (hasUDA!(U, typeof(forceNothrowPostblit()))) {
+									try typeid(T).postblit(cast(void*)&trustedGet!T());
+									catch (Exception e) assert(false, e.msg);
+								} else {
+									typeid(T).postblit(cast(void*)&trustedGet!T());
+								}
+								return;
+						}
 					}
 				}
 			}
@@ -491,6 +510,39 @@ unittest { // non-copyable types
 	tu.setS(S.init);
 }
 
+unittest { // postblit
+	static struct WithPostblit {
+		int x = 1;
+		this(this) { ++x; }
+	}
+	static struct U {
+		WithPostblit w;
+	}
+
+	alias TU = TaggedUnion!U;
+	TU tu1;
+	assert(tu1.wValue().x == 1);
+	auto tu2 = tu1;
+	assert(tu2.wValue().x == 2);
+}
+
+static if (__VERSION__ >= 2095)
+unittest { // copy ctor
+	static struct WithCopyCtor {
+		int x = 1;
+		this(scope ref inout WithCopyCtor rhs) inout { x = rhs.x + 1; }
+	}
+	static struct U {
+		WithCopyCtor w;
+	}
+
+	alias TU = TaggedUnion!U;
+	TU tu1;
+	assert(tu1.wValue().x == 1);
+	auto tu2 = tu1;
+	assert(tu2.wValue().x == 2);
+}
+
 unittest { // alignment
 	union S1 { int v; }
 	union S2 { ulong v; }
@@ -815,3 +867,7 @@ package void rawSwap(T)(ref T a, ref T b)
 	ab[] = bb[];
 	bb[] = tmp[];
 }
+
+// only checks for copy ctors, not postblits too like hasElaborateCopyConstructor
+static if (__VERSION__ >= 2095)
+private enum hasCopyConstructor(T) = __traits(hasCopyConstructor, T);
