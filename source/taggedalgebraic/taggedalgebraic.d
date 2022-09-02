@@ -1047,21 +1047,22 @@ private static auto ref implementOp(OpKind kind, string name, T, ARGS...)(ref T 
 		default: assert(false, assert_msg);
 		foreach (i, f; info.fields) {
 			alias FT = T.UnionType.FieldTypeByName!f;
+			enum fi = T.UnionType.FieldIndexByName!f;
 			case __traits(getMember, T.Kind, f):
 				static if (NoDuplicates!(info.ReturnTypes).length == 1)
-					return info.perform(self.m_union.trustedGet!FT, args);
+					return info.perform(self.m_union.trustedGet!fi, args);
 				else static if (allSatisfy!(isMatchingUniqueType!T, info.ReturnTypes))
-					return TaggedAlgebraic!(T.FieldDefinitionType)(info.perform(self.m_union.trustedGet!FT, args));
+					return TaggedAlgebraic!(T.FieldDefinitionType)(info.perform(self.m_union.trustedGet!fi, args));
 				else static if (allSatisfy!(isNoVariant, info.ReturnTypes)) {
 					alias Alg = Algebraic!(NoDuplicates!(info.ReturnTypes));
-					info.ReturnTypes[i] ret = info.perform(self.m_union.trustedGet!FT, args);
+					info.ReturnTypes[i] ret = info.perform(self.m_union.trustedGet!fi, args);
 					import std.traits : isInstanceOf;
 					return Alg(ret);
 				}
 				else static if (is(FT == Variant))
-					return info.perform(self.m_union.trustedGet!FT, args);
+					return info.perform(self.m_union.trustedGet!fi, args);
 				else
-					return Variant(info.perform(self.m_union.trustedGet!FT, args));
+					return Variant(info.perform(self.m_union.trustedGet!fi, args));
 		}
 	}
 

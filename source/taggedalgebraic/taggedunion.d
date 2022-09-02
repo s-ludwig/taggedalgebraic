@@ -59,7 +59,8 @@ struct TaggedUnion
 	static assert(FieldTypes.length > 0, "The TaggedUnions's union type must have at least one field.");
 	static assert(FieldTypes.length == fieldNames.length);
 
-	package alias FieldTypeByName(string name) = FieldTypes[__traits(getMember, Kind, name)];
+	package alias FieldTypeByName(string name) = FieldTypes[FieldIndexByName!name];
+	package alias FieldIndexByName(string name) = __traits(getMember, Kind, name);
 
 	private static union Data {
 		static if (!isUnitType!(FieldTypes[0]))
@@ -291,7 +292,7 @@ struct TaggedUnion
 						assert(false, msg!n);
 			}
 		}
-		return m_data.fields[kind];
+		return m_data.field[kind];
 	}
 
 
