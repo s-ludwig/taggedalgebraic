@@ -12,6 +12,6 @@ else
     dub test
 
     if [ "x${TEST_MESON:-}" = "xtrue" ] && [ "x$(dmd --version | head -n1)" != "xDMD64 D Compiler v2.085.1" ]; then
-        meson build && ninja -C build
+        meson setup build/ && ninja -C build/
     fi
 fi
