@@ -12,10 +12,10 @@ taggedalgebraic_dep = declare_dependency(
 )
 
 test_exe = executable(
-	'taggedalgebraic_test',
-	dependencies: taggedalgebraic_dep,
-	d_unittest: true,
-	link_args: '-main',
+    'taggedalgebraic_test',
+    dependencies: taggedalgebraic_dep,
+    d_unittest: true,
+    link_args: '-main',
 )
 
 test('test_taggedalgebraic', test_exe)
