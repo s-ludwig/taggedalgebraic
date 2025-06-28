@@ -70,11 +70,6 @@ align(commonAlignment!(UnionKindTypes!(UnionFieldEnum!U))) struct TaggedUnion
 		Kind m_kind;
 	}
 
-	this(TaggedUnion other)
-	{
-		rawSwap(this, other);
-	}
-
 	void opAssign(TaggedUnion other)
 	{
 		rawSwap(this, other);
