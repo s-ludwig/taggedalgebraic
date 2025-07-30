@@ -314,15 +314,17 @@ private template selectHandler(T, VISITORS...)
 	template genericIndex(int i, int matched_index = -1) {
 		static if (i < VISITORS.length) {
 			alias fun = VISITORS[i];
-			static if (!isSomeFunction!fun) {
-				static if (!__traits(isTemplate, fun)) enum genericIndex = "Visitor at index " ~ i.stringof ~ " is neither a function, nor a template.";
-				else static if (__traits(compiles, fun!T) && isSomeFunction!(fun!T)) {
-					static if (ParameterTypeTuple!(fun!T).length == 1) {
-						static if (matched_index >= 0) enum genericIndex = "Only one generic visitor allowed";
-						else enum genericIndex = genericIndex!(i+1, i);
-					} else enum genericIndex = "Generic visitor at index "~i.stringof~" must have a single parameter.";
-				} else enum genericIndex = genericIndex!(i+1, i); // let this fail within the template instantiation instead of here
-			} else enum genericIndex = genericIndex!(i+1, matched_index);
+			static if (isSomeFunction!fun)
+				enum genericIndex = genericIndex!(i+1, matched_index);
+			else static if (!__traits(isTemplate, fun))
+				enum genericIndex = "Visitor at index " ~ i.stringof ~ " is neither a function, nor a template.";
+			else static if (!__traits(compiles, fun!T) || !isSomeFunction!(fun!T))
+				enum genericIndex = genericIndex!(i+1, i); // let this fail within the template instantiation instead of here
+			else static if (ParameterTypeTuple!(fun!T).length != 1)
+				enum genericIndex = "Generic visitor at index "~i.stringof~" must have a single parameter.";
+			else static if (matched_index >= 0)
+				enum genericIndex = "Only one generic visitor allowed";
+			else enum genericIndex = genericIndex!(i+1, i);
 		} else enum genericIndex = matched_index;
 	}
 
