@@ -348,6 +348,9 @@ align(commonAlignment!(UnionKindTypes!(UnionFieldEnum!U))) struct TaggedUnion
 		import std.conv : text;
 		import std.format : FormatSpec, formatValue;
 
+		enum suffix = ")";
+		FormatSpec!char spec;
+
 		final switch (m_kind) {
 			foreach (i, v; EnumMembers!Kind) {
 				case v:
@@ -358,9 +361,7 @@ align(commonAlignment!(UnionKindTypes!(UnionFieldEnum!U))) struct TaggedUnion
 						//       because formattedWrite does not work for
 						//       non-copyable types
 						enum prefix = "(" ~ vstr ~ ": ";
-						enum suffix = ")";
 						put(w, prefix);
-						FormatSpec!char spec;
 						formatValue(w, value!v, spec);
 						put(w, suffix);
 					}
