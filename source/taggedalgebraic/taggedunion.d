@@ -752,11 +752,18 @@ package template AmbiguousTypes(Types...) {
 	alias AmbiguousTypes = impl!0;
 }
 
+private size_t gcd(size_t a, size_t b) {
+    while (b != 0) {
+        size_t temp = b;
+        b = a % b;
+        a = temp;
+    }
+    return a;
+}
+
 /// Computes the minimum alignment necessary to align all types correctly
 private size_t commonAlignment(TYPES...)()
 {
-	import std.numeric : gcd;
-
 	size_t ret = 1;
 	foreach (T; TYPES)
 		ret = (T.alignof * ret) / gcd(T.alignof, ret);
