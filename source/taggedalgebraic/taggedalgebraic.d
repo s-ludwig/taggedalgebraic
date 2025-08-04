@@ -110,7 +110,7 @@ unittest {
 struct TaggedAlgebraic(U) if (is(U == union) || is(U == struct) || is(U == enum))
 {
 	import std.algorithm : among;
-	import std.string : format;
+	import std.conv : to;
 
 	/// Alias of the type used for defining the possible storage types/kinds.
 	deprecated alias Union = U;
@@ -1313,58 +1313,60 @@ private enum OpKind {
 
 deprecated alias TypeEnum(U) = UnionFieldEnum!U;
 
+private string generateConstructor1(string tname) {
+	return "this(UnionType.FieldTypeByName!\"" ~ tname ~ `" value)
+	{
+		static if (isUnitType!(UnionType.FieldTypeByName!"` ~ tname ~ `"))
+			m_union.set!(Kind.` ~ tname ~ `)();
+		else
+			m_union.set!(Kind.` ~ tname ~ `)(value);
+	}
+
+	void opAssign(UnionType.FieldTypeByName!"` ~ tname ~ `" value)
+	{
+		static if (isUnitType!(UnionType.FieldTypeByName!"` ~ tname ~ `"))
+			m_union.set!(Kind.` ~ tname ~ `)();
+		else
+			m_union.set!(Kind.` ~ tname ~ `)(value);
+	}`;
+}
+
+private string generateConstructor2(string tname) {
+	return `this(UnionType.FieldTypeByName!"` ~ tname ~ `" value, Kind type)
+	{
+		switch (type) {
+			foreach (i, n; TaggedUnion!U.fieldNames) {
+				static if (is(UnionType.FieldTypeByName!"` ~ tname ~ `" == UnionType.FieldTypes[i])) {
+					case __traits(getMember, Kind, n):
+						static if (isUnitType!(UnionType.FieldTypes[i]))
+							m_union.set!(__traits(getMember, Kind, n))();
+						else m_union.set!(__traits(getMember, Kind, n))(value);
+						return;
+				}
+			}
+			// NOTE: the default case needs to be at the bottom to avoid bogus
+			//       unreachable code warnings (DMD issue 21671)
+			default: assert(false, "Invalid type ID for type " ~
+				UnionType.FieldTypeByName!"` ~ tname ~ `".stringof ~ ": " ~ to!(string)(type));
+		}
+	}`;
+}
 
 private string generateConstructors(U)()
 {
 	import std.algorithm : map;
 	import std.array : join;
-	import std.string : format;
 	import std.traits : FieldTypeTuple;
 
 	string ret;
 
-
 	// normal type constructors
 	foreach (tname; UniqueTypeFields!U)
-		ret ~= q{
-			this(UnionType.FieldTypeByName!"%1$s" value)
-			{
-				static if (isUnitType!(UnionType.FieldTypeByName!"%1$s"))
-					m_union.set!(Kind.%1$s)();
-				else
-					m_union.set!(Kind.%1$s)(value);
-			}
-
-			void opAssign(UnionType.FieldTypeByName!"%1$s" value)
-			{
-				static if (isUnitType!(UnionType.FieldTypeByName!"%1$s"))
-					m_union.set!(Kind.%1$s)();
-				else
-					m_union.set!(Kind.%1$s)(value);
-			}
-		}.format(tname);
+		ret ~= generateConstructor1(tname);
 
 	// type constructors with explicit type tag
 	foreach (tname; AliasSeq!(UniqueTypeFields!U, AmbiguousTypeFields!U))
-		ret ~= q{
-			this(UnionType.FieldTypeByName!"%1$s" value, Kind type)
-			{
-				switch (type) {
-					foreach (i, n; TaggedUnion!U.fieldNames) {
-						static if (is(UnionType.FieldTypeByName!"%1$s" == UnionType.FieldTypes[i])) {
-							case __traits(getMember, Kind, n):
-								static if (isUnitType!(UnionType.FieldTypes[i]))
-									m_union.set!(__traits(getMember, Kind, n))();
-								else m_union.set!(__traits(getMember, Kind, n))(value);
-								return;
-						}
-					}
-					// NOTE: the default case needs to be at the bottom to avoid bogus
-					//       unreachable code warnings (DMD issue 21671)
-					default: assert(false, format("Invalid type ID for type %%s: %%s", UnionType.FieldTypeByName!"%1$s".stringof, type));
-				}
-			}
-		}.format(tname);
+		ret ~= generateConstructor2(tname);
 
 	return ret;
 }
