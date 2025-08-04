@@ -139,6 +139,7 @@ struct TaggedAlgebraic(U) if (is(U == union) || is(U == struct) || is(U == enum)
 	//pragma(msg, generateConstructors!U());
 	mixin(generateConstructors!U);
 
+	static if (__VERSION__ < 2095 || !__traits(hasCopyConstructor, UnionType))
 	this(TaggedAlgebraic other)
 	{
 		rawSwap(this, other);
@@ -533,6 +534,23 @@ unittest { // postblit/destructor test
 		assert(S.i == 1);
 	}
 	assert(S.i == 0);
+}
+
+static if (__VERSION__ >= 2095)
+unittest { // copy ctor
+	static struct WithCopyCtor {
+		int x = 1;
+		this(scope ref inout WithCopyCtor rhs) inout { x = rhs.x + 1; }
+	}
+	static struct U {
+		WithCopyCtor w;
+	}
+
+	alias TA = TaggedAlgebraic!U;
+	TA ta1;
+	assert(ta1.x == 1);
+	auto ta2 = ta1;
+	assert(ta2.x == 2);
 }
 
 unittest {
